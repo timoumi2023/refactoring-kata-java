@@ -24,101 +24,81 @@ public class ShoppingController {
     private static final String PLATINUM_CUSTOMER = "PLATINUM_CUSTOMER";
 
     @PostMapping
-    public String getPrice(@RequestBody Body b) {
-        double p = 0;
-        double d;
+    public String getPrice(@RequestBody Body body) {
+        double price = calculateTotalPrice(body);
+        validatePrice(body.getType(), price);
+        return String.valueOf(price);
+    }
 
-        Date date = new Date();
+    //calculer les totaux des prix aprés discount
+    private double calculateTotalPrice(Body body) {
+        double discount = calculateDiscount(body.getType());
+        double totalPrice = 0;
+
+        if (body.getItems() != null) {
+            for (Item item : body.getItems()) {
+                totalPrice += calculateItemPrice(item, discount);
+            }
+        }
+
+        return totalPrice;
+    }
+
+    //determiner le % de discount
+    private double calculateDiscount(String customerType) {
+        switch (customerType) {
+            case STANDARD_CUSTOMER:
+                return 1.0;
+            case PREMIUM_CUSTOMER:
+                return 0.9;
+            case PLATINUM_CUSTOMER:
+                return 0.5;
+            default:
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // calculer les prix de chaque item en fonction de discount
+    private double calculateItemPrice(Item item, double discount) {
+        switch (item.getType()) {
+            case "TSHIRT":
+                return 30 * item.getNb() * discount;
+            case "DRESS":
+                return 50 * item.getNb() * (isSummerDiscount() ? 0.8 : 1) * discount;
+            case "JACKET":
+                return 100 * item.getNb() * (isSummerDiscount() ? 0.9 : 1) * discount;
+            default:
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    //determiner la saison de discount
+    private boolean isSummerDiscount() {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
-        cal.setTime(date);
+        int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH);
+        int month = cal.get(Calendar.MONTH);
+        return (dayOfMonth > 5 && dayOfMonth < 15) && (month == 0 || month == 5);
+    }
 
-        // Compute discount for customer
-        if (b.getType().equals(STANDARD_CUSTOMER)) {
-            d = 1;
-        } else if (b.getType().equals(PREMIUM_CUSTOMER)) {
-            d = 0.9;
-        } else if (b.getType().equals(PLATINUM_CUSTOMER)) {
-            d = 0.5;
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    private void validatePrice(String customerType, double price) {
+        double maxPrice = getMaxPrice(customerType);
+        if (price > maxPrice) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price (" + price + ") is too high for " + customerType + " customer");
         }
+    }
 
-        // Compute total amount depending on the types and quantity of product and
-        // if we are in winter or summer discounts periods
-        if (
-            !(
-                cal.get(Calendar.DAY_OF_MONTH) < 15 &&
-                cal.get(Calendar.DAY_OF_MONTH) > 5 &&
-                cal.get(Calendar.MONTH) == 5
-            ) &&
-            !(
-                cal.get(Calendar.DAY_OF_MONTH) < 15 &&
-                cal.get(Calendar.DAY_OF_MONTH) > 5 &&
-                cal.get(Calendar.MONTH) == 0
-            )
-        ) {
-            if (b.getItems() == null) {
-                return "0";
-            }
-
-            for (int i = 0; i < b.getItems().length; i++) {
-                Item it = b.getItems()[i];
-
-                if (it.getType().equals("TSHIRT")) {
-                    p += 30 * it.getNb() * d;
-                } else if (it.getType().equals("DRESS")) {
-                    p += 50 * it.getNb() * d;
-                } else if (it.getType().equals("JACKET")) {
-                    p += 100 * it.getNb() * d;
-                }
-                // else if (it.getType().equals("SWEATSHIRT")) {
-                //     price += 80 * it.getNb();
-                // }
-            }
-        } else {
-            if (b.getItems() == null) {
-                return "0";
-            }
-
-            for (int i = 0; i < b.getItems().length; i++) {
-                Item it = b.getItems()[i];
-
-                if (it.getType().equals("TSHIRT")) {
-                    p += 30 * it.getNb() * d;
-                } else if (it.getType().equals("DRESS")) {
-                    p += 50 * it.getNb() * 0.8 * d;
-                } else if (it.getType().equals("JACKET")) {
-                    p += 100 * it.getNb() * 0.9 * d;
-                }
-                // else if (it.getType().equals("SWEATSHIRT")) {
-                //     price += 80 * it.getNb();
-                // }
-            }
+    //determiner le prix selon la categorie de client
+    private double getMaxPrice(String customerType) {
+        switch (customerType) {
+            case STANDARD_CUSTOMER:
+                return 200;
+            case PREMIUM_CUSTOMER:
+                return 800;
+            case PLATINUM_CUSTOMER:
+                return 2000;
+            default:
+                return 200;
         }
-
-        try {
-            if (b.getType().equals(STANDARD_CUSTOMER)) {
-                if (p > 200) {
-                    throw new Exception("Price (" + p + ") is too high for standard customer");
-                }
-            } else if (b.getType().equals(PREMIUM_CUSTOMER)) {
-                if (p > 800) {
-                    throw new Exception("Price (" + p + ") is too high for premium customer");
-                }
-            } else if (b.getType().equals(PLATINUM_CUSTOMER)) {
-                if (p > 2000) {
-                    throw new Exception("Price (" + p + ") is too high for platinum customer");
-                }
-            } else {
-                if (p > 200) {
-                    throw new Exception("Price (" + p + ") is too high for standard customer");
-                }
-            }
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
-
-        return String.valueOf(p);
     }
 }
 
