@@ -19,6 +19,9 @@ import com.sipios.refactoring.model.Item;
 public class ShoppingController {
 
     private Logger logger = LoggerFactory.getLogger(ShoppingController.class);
+    private static final String STANDARD_CUSTOMER = "STANDARD_CUSTOMER";
+    private static final String PREMIUM_CUSTOMER = "PREMIUM_CUSTOMER";
+    private static final String PLATINUM_CUSTOMER = "PLATINUM_CUSTOMER";
 
     @PostMapping
     public String getPrice(@RequestBody Body b) {
@@ -30,11 +33,11 @@ public class ShoppingController {
         cal.setTime(date);
 
         // Compute discount for customer
-        if (b.getType().equals("STANDARD_CUSTOMER")) {
+        if (b.getType().equals(STANDARD_CUSTOMER)) {
             d = 1;
-        } else if (b.getType().equals("PREMIUM_CUSTOMER")) {
+        } else if (b.getType().equals(PREMIUM_CUSTOMER)) {
             d = 0.9;
-        } else if (b.getType().equals("PLATINUM_CUSTOMER")) {
+        } else if (b.getType().equals(PLATINUM_CUSTOMER)) {
             d = 0.5;
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
@@ -94,15 +97,15 @@ public class ShoppingController {
         }
 
         try {
-            if (b.getType().equals("STANDARD_CUSTOMER")) {
+            if (b.getType().equals(STANDARD_CUSTOMER)) {
                 if (p > 200) {
                     throw new Exception("Price (" + p + ") is too high for standard customer");
                 }
-            } else if (b.getType().equals("PREMIUM_CUSTOMER")) {
+            } else if (b.getType().equals(PREMIUM_CUSTOMER)) {
                 if (p > 800) {
                     throw new Exception("Price (" + p + ") is too high for premium customer");
                 }
-            } else if (b.getType().equals("PLATINUM_CUSTOMER")) {
+            } else if (b.getType().equals(PLATINUM_CUSTOMER)) {
                 if (p > 2000) {
                     throw new Exception("Price (" + p + ") is too high for platinum customer");
                 }
